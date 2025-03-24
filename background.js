@@ -10,7 +10,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
     if (request.action === 'updateToken') {
       currentToken = request.token;
-      console.log('背景: 更新授權令牌');
+      console.log('背景: 更新授權令牌:', currentToken.substring(0, 15) + '...');
       sendResponse({status: 'ok'});
     } 
     else if (request.action === 'updateRequests') {
@@ -20,7 +20,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     else if (request.action === 'updateLastPlayed') {
       lastPlayedMessage = request.message;
-      console.log('背景: 更新最後播放的消息');
+      console.log('背景: 更新最後播放的消息:', lastPlayedMessage);
       sendResponse({status: 'ok'});
     }
     else if (request.action === 'getRequests') {
@@ -36,10 +36,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse(lastPlayedMessage);
     }
     else if (request.action === 'downloadAudio') {
-      console.log('背景: 開始下載');
+      console.log('背景: 開始下載', { messageId: request.messageId, conversationId: request.conversationId });
       downloadAudio(request.messageId, request.conversationId)
-        .then(result => sendResponse(result))
-        .catch(error => sendResponse({status: 'error', message: error.message}));
+        .then(result => {
+          console.log('背景: 下載結果:', result);
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('背景: 下載錯誤:', error);
+          sendResponse({status: 'error', message: error.message});
+        });
       return true; // 異步回應
     }
   } catch (error) {
@@ -55,80 +61,96 @@ async function downloadAudio(messageId, conversationId) {
   console.log('背景: 下載音頻:', { messageId, conversationId });
   
   try {
-    // 嘗試不同的聲音和格式組合
-    const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
-    const formats = ['mp3', 'aac', 'opus'];
-    
-    // 首先嘗試使用 alloy 聲音和 mp3 格式
-    let url = `https://chat.openai.com/backend-api/synthesize?message_id=${messageId}&conversation_id=${conversationId}&voice=alloy&format=mp3`;
-    
     // 檢查是否有令牌
     if (!currentToken) {
       throw new Error('沒有可用的授權令牌，請先播放語音');
     }
     
-    console.log('背景: 使用URL:', url);
-    console.log('背景: 使用令牌:', currentToken.substring(0, 15) + '...');
+    // 嘗試不同的基礎URL
+    const baseUrls = [
+      'https://chat.openai.com/backend-api/synthesize',
+      'https://chat.openai.com/backend-api/conversation/gen_title/synthesize',
+      'https://chatgpt.com/backend-api/synthesize'
+    ];
     
-    // 嘗試下載
-    let response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': currentToken,
-        'Accept': 'audio/*',
-        'User-Agent': navigator.userAgent,
-        'Referer': 'https://chat.openai.com/',
-        'Origin': 'https://chat.openai.com'
-      }
-    });
+    // 嘗試不同的聲音和格式組合
+    const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+    const formats = ['mp3', 'aac', 'opus'];
     
-    // 如果失敗，嘗試其他聲音和格式組合
-    if (!response.ok) {
-      console.log(`背景: 初始嘗試失敗 (${response.status})，嘗試其他組合...`);
-      
-      for (let voice of voices) {
-        for (let format of formats) {
-          if (voice === 'alloy' && format === 'mp3') continue; // 跳過已嘗試的組合
+    let response = null;
+    let successUrl = '';
+    
+    // 嘗試所有可能的組合
+    for (const baseUrl of baseUrls) {
+      for (const voice of voices) {
+        for (const format of formats) {
+          const url = `${baseUrl}?message_id=${messageId}&conversation_id=${conversationId}&voice=${voice}&format=${format}`;
           
-          url = `https://chat.openai.com/backend-api/synthesize?message_id=${messageId}&conversation_id=${conversationId}&voice=${voice}&format=${format}`;
+          console.log(`背景: 嘗試 ${baseUrl} 使用 ${voice}/${format} 組合...`);
           
-          console.log(`背景: 嘗試 ${voice}/${format} 組合...`);
-          
-          response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Authorization': currentToken,
-              'Accept': 'audio/*',
-              'User-Agent': navigator.userAgent,
-              'Referer': 'https://chat.openai.com/',
-              'Origin': 'https://chat.openai.com'
+          try {
+            response = await fetch(url, {
+              method: 'GET',
+              headers: {
+                'Authorization': currentToken,
+                'Accept': 'audio/*',
+                'User-Agent': navigator.userAgent,
+                'Referer': 'https://chat.openai.com/',
+                'Origin': 'https://chat.openai.com'
+              }
+            });
+            
+            console.log(`背景: ${voice}/${format} 嘗試結果:`, response.status);
+            
+            if (response.ok) {
+              console.log(`背景: 成功使用 ${voice}/${format} 組合`);
+              successUrl = url;
+              break;
             }
-          });
-          
-          if (response.ok) {
-            console.log(`背景: 成功使用 ${voice}/${format} 組合`);
-            break;
+          } catch (fetchError) {
+            console.error(`背景: 嘗試 ${voice}/${format} 時出錯:`, fetchError);
           }
         }
         
-        if (response.ok) break;
+        if (response && response.ok) break;
       }
+      
+      if (response && response.ok) break;
     }
     
-    if (!response.ok) {
-      throw new Error(`下載失敗: ${response.status} ${response.statusText}`);
+    if (!response || !response.ok) {
+      throw new Error(`下載失敗: ${response ? response.status + ' ' + response.statusText : '無回應'}`);
     }
     
-    console.log('背景: 音頻獲取成功');
+    console.log('背景: 音頻獲取成功，使用URL:', successUrl);
+    
+    // 檢查響應類型
+    const contentType = response.headers.get('content-type');
+    console.log('背景: 響應內容類型:', contentType);
+    
+    // 獲取 blob
     const blob = await response.blob();
+    console.log('背景: blob 大小:', blob.size, 'bytes');
+    
+    if (blob.size < 100) {
+      // 內容太小，可能是錯誤
+      const text = await blob.text();
+      console.error('背景: 響應內容太小，可能是錯誤:', text);
+      throw new Error(`下載失敗: 返回內容太小 (${blob.size} bytes)`);
+    }
+    
     const objectUrl = URL.createObjectURL(blob);
+    
+    // 確定文件格式
+    const fileFormat = contentType.includes('aac') ? 'aac' : 
+                      contentType.includes('opus') ? 'opus' : 'mp3';
     
     console.log('背景: 開始下載...');
     const downloadId = await new Promise((resolve, reject) => {
       chrome.downloads.download({
         url: objectUrl,
-        filename: `chatgpt-voice-${messageId.substring(0, 8)}.mp3`,
-        saveAs: false
+        filename: `chatgpt-voice-${messageId.substring(0, 8)}.${fileFormat}`,
+        saveAs: true  // 顯示保存對話框
       }, (downloadId) => {
         if (chrome.runtime.lastError) {
           reject(chrome.runtime.lastError);
