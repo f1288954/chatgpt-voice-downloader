@@ -1,80 +1,80 @@
 # ChatGPT Voice Downloader
 
-## 專案概述
-這是一個 Chrome 擴充功能，專門用於下載 ChatGPT 的語音回應檔案。擴充功能透過攔截網頁請求來獲取必要的資訊，包括 Conversation ID、Message ID 和授權令牌，然後使用這些資訊來下載語音檔案。
+## Project Overview
+This Chrome extension is designed to download voice responses from ChatGPT. The extension works by intercepting web requests to obtain necessary information, including Conversation ID, Message ID, and authorization token, then uses this information to download the audio files.
 
-## 當前問題
-目前擴充功能可以成功獲取 Conversation ID 和 Message ID，但在下載語音檔案時遇到問題。可能的原因包括：
-1. 授權令牌獲取或使用不正確
-2. 下載請求格式不符合 ChatGPT API 的要求
-3. 檔案處理或儲存過程中出現錯誤
+## Current Issues
+Currently, the extension can successfully obtain Conversation ID and Message ID, but encounters problems when downloading audio files. Possible causes include:
+1. Incorrect acquisition or use of the authorization token
+2. Download request format not meeting ChatGPT API requirements
+3. Errors in file processing or storage
 
-## 代碼結構
+## Code Structure
 
 ### manifest.json
-- 定義擴充功能的基本資訊和權限
-- 指定背景腳本、內容腳本和彈出視窗
+- Defines basic extension information and permissions
+- Specifies background scripts, content scripts, and popup
 
 ### content.js
-- **核心功能**：攔截網頁請求，提取 Message ID 和授權令牌
-- **關鍵部分**：
-  - `injectInterceptor()`: 注入 JavaScript 以攔截 fetch 請求
-  - `window.addEventListener('message')`: 接收攔截到的請求資訊
-  - `addDownloadButtons()`: 為語音訊息添加下載按鈕
+- **Core functionality**: Intercepts web requests, extracts Message ID and authorization token
+- **Key components**:
+  - `injectInterceptor()`: Injects JavaScript to intercept fetch requests
+  - `window.addEventListener('message')`: Receives intercepted request information
+  - `addDownloadButtons()`: Adds download buttons to voice messages
 
 ### background.js
-- **核心功能**：處理下載請求，管理授權資訊
-- **關鍵部分**：
-  - `chrome.webRequest.onBeforeSendHeaders.addListener`: 監聽網絡請求
-  - `downloadAudio()`: 下載語音檔案的主要函數
-  - 消息處理系統，用於與內容腳本和彈出視窗通信
+- **Core functionality**: Handles download requests, manages authorization information
+- **Key components**:
+  - `chrome.webRequest.onBeforeSendHeaders.addListener`: Monitors network requests
+  - `downloadAudio()`: Main function for downloading audio files
+  - Message handling system for communication with content scripts and popup
 
 ### popup.js/html
-- **核心功能**：提供用戶界面，顯示請求歷史
-- **關鍵部分**：
-  - 顯示已捕獲的請求列表
-  - 提供手動下載選項
+- **Core functionality**: Provides user interface, displays request history
+- **Key components**:
+  - Displays list of captured requests
+  - Provides manual download options
 
-## 技術實現細節
+## Technical Implementation Details
 
-### 請求攔截機制
-擴充功能使用兩種方法攔截請求：
-1. 在內容腳本中注入代碼攔截 `fetch` 請求
-2. 使用 Chrome 的 `webRequest` API 在背景腳本中監聽請求
+### Request Interception Mechanism
+The extension uses two methods to intercept requests:
+1. Injects code in the content script to intercept `fetch` requests
+2. Uses Chrome's `webRequest` API to monitor requests in the background script
 
-### 授權處理
-- 從攔截的請求中提取授權令牌
-- 在背景腳本中保存令牌以供下載使用
+### Authorization Handling
+- Extracts authorization token from intercepted requests
+- Saves token in the background script for download use
 
-### 下載流程
-1. 獲取 Message ID 和 Conversation ID
-2. 構建下載 URL
-3. 使用保存的授權令牌發送請求
-4. 使用 Chrome 的 `downloads` API 保存檔案
+### Download Process
+1. Obtains Message ID and Conversation ID
+2. Constructs download URL
+3. Sends request using saved authorization token
+4. Saves file using Chrome's `downloads` API
 
-## 調試指南
+## Debugging Guide
 
-### 常見問題
-1. **授權問題**：檢查令牌是否正確獲取和使用
-2. **請求格式**：確認下載 URL 格式是否正確
-3. **錯誤處理**：查看控制台錯誤日誌
+### Common Issues
+1. **Authorization issues**: Check if token is correctly acquired and used
+2. **Request format**: Confirm download URL format is correct
+3. **Error handling**: Check console error logs
 
-### 調試步驟
-1. 開啟 Chrome 開發者工具，查看控制台輸出
-2. 檢查網絡請求，特別是與 `synthesize` 相關的請求
-3. 確認授權令牌是否成功傳遞
-4. 檢查下載函數中的錯誤處理
+### Debugging Steps
+1. Open Chrome developer tools to view console output
+2. Check network requests, especially those related to `synthesize`
+3. Confirm if authorization token is successfully passed
+4. Check error handling in the download function
 
-## 開發規範
+## Development Guidelines
 
-### 重要指引
-1. **不要替換現有的核心功能代碼**，特別是網絡請求攔截部分
-2. **先分析問題**，不要直接修改代碼
-3. **提出具體的解決方案**並等待確認後再進行修改
-4. **保留詳細的日誌輸出**以便於調試
+### Important Guidelines
+1. **Do not replace existing core functionality code**, especially network request interception parts
+2. **Analyze the problem first**, don't directly modify code
+3. **Propose specific solutions** and wait for confirmation before making changes
+4. **Maintain detailed log output** for debugging purposes
 
-## 未來改進方向
-1. 改進錯誤處理和用戶反饋
-2. 增加批量下載功能
-3. 支援更多語音格式和選項
-4. 優化用戶界面體驗
+## Future Improvements
+1. Improve error handling and user feedback
+2. Add batch download functionality
+3. Support more audio formats and options
+4. Optimize user interface experience
