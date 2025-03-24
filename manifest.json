@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ChatGPT Voice Downloader",
+  "version": "1.0",
+  "description": "Download voice responses from ChatGPT",
+  "permissions": ["downloads", "webRequest", "storage", "tabs"],
+  "host_permissions": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [{
+    "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
+    "js": ["content.js"]
+  }],
+  "web_accessible_resources": [{
+    "resources": ["interceptor.js"],
+    "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"]
+  }],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

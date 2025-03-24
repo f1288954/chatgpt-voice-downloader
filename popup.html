@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ChatGPT 語音下載器</title>
+  <style>
+    body {
+      width: 320px;
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      margin: 0;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      color: #333;
+      text-align: center;
+    }
+    .input-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 12px;
+      color: #555;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #0d8c6e;
+    }
+    .section {
+      margin-top: 15px;
+      background-color: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #333;
+      display: flex;
+      align-items: center;
+    }
+    .section-title:before {
+      content: "🔊";
+      margin-right: 5px;
+    }
+    #requests-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .request-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .request-item:last-child {
+      border-bottom: none;
+    }
+    .timestamp {
+      color: #888;
+      font-size: 11px;
+    }
+    .message-id {
+      font-family: monospace;
+      background-color: #f5f5f5;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .mini-download-btn {
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      padding: 3px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      align-self: flex-start;
+    }
+    .mini-download-btn:hover {
+      background-color: #0d8c6e;
+    }
+    .no-requests {
+      color: #888;
+      text-align: center;
+      padding: 10px;
+      font-style: italic;
+    }
+    #status-text {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 13px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    #last-played-section {
+      margin-top: 15px;
+      background-color: #e6f7ff;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    #last-played-info {
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    #download-last-btn {
+      background-color: #1890ff;
+    }
+    #download-last-btn:hover {
+      background-color: #096dd9;
+    }
+    footer {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <h1>ChatGPT 語音下載器</h1>
+  
+  <div class="section">
+    <div class="input-group">
+      <label for="message-id">訊息 ID</label>
+      <input type="text" id="message-id" placeholder="輸入訊息 ID">
+    </div>
+    
+    <div class="input-group">
+      <label for="conversation-id">對話 ID</label>
+      <input type="text" id="conversation-id" placeholder="輸入對話 ID">
+    </div>
+    
+    <button id="download-btn">下載語音</button>
+  </div>
+  
+  <div id="last-played-section" style="display: none;">
+    <div class="section-title">最近播放</div>
+    <div id="last-played-info"></div>
+    <button id="download-last-btn">下載此語音</button>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">請求歷史</div>
+    <ul id="requests-list">
+      <li class="no-requests">載入中...</li>
+    </ul>
+  </div>
+  
+  <div id="status-text"></div>
+  
+  <footer>
+    ChatGPT 語音下載器 v2.0
+  </footer>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
