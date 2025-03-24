@@ -49,57 +49,65 @@ function showNotification(message, isError = false) {
   }, 3000);
 }
 
-// 注入腳本來攔截 fetch 請求
-function injectInterceptor() {
-  console.log('內容腳本: 注入攔截器');
+// 注入攔截器腳本
+function injectInterceptorScript() {
+  if (document.querySelector('#voice-downloader-interceptor')) {
+    console.log('內容腳本: 攔截器腳本已經存在');
+    return;
+  }
   
-  // 使用外部腳本而不是內聯腳本
-  const script = document.createElement('script');
-  script.src = chrome.runtime.getURL('interceptor.js');
-  script.onload = function() {
-    console.log('內容腳本: 攔截器腳本已成功加載');
-    // 腳本加載後可以移除，因為它已經執行了
-    this.remove();
-  };
+  console.log('內容腳本: 注入攔截器腳本');
   
-  // 將腳本插入到頁面
-  (document.head || document.documentElement).appendChild(script);
+  try {
+    const script = document.createElement('script');
+    script.id = 'voice-downloader-interceptor';
+    script.src = chrome.runtime.getURL('interceptor.js');
+    script.onload = function() {
+      console.log('內容腳本: 攔截器腳本成功加載');
+    };
+    (document.head || document.documentElement).appendChild(script);
+  } catch (error) {
+    console.error('內容腳本: 注入攔截器腳本失敗:', error);
+  }
 }
 
 // 掃描頁面中的消息 ID
 function scanMessageIds() {
-  // 尋找所有訊息容器
-  const messageElements = document.querySelectorAll('[data-message-id], [data-testid*="message"]');
-  console.log('內容腳本: 找到可能的訊息元素:', messageElements.length);
+  console.log('內容腳本: 掃描頁面中的訊息 ID');
   
-  // 處理每個找到的元素
-  messageElements.forEach(element => {
-    let messageId = element.getAttribute('data-message-id');
+  try {
+    // ChatGPT UI 中的消息容器
+    const messageElements = document.querySelectorAll('[data-message-id], [data-testid="conversation-turn"]');
     
-    // 如果沒有直接的 data-message-id，嘗試從其他屬性找
-    if (!messageId) {
-      // 從 data-testid 嘗試提取
-      const testId = element.getAttribute('data-testid');
-      if (testId && testId.includes('message')) {
-        // 嘗試從內部找 ID
+    console.log('內容腳本: 找到可能的訊息元素:', messageElements.length);
+    
+    messageElements.forEach(element => {
+      let messageId = null;
+      
+      // 嘗試獲取 data-message-id 屬性
+      if (element.hasAttribute('data-message-id')) {
+        messageId = element.getAttribute('data-message-id');
+      } 
+      // 嘗試從 data-testid="conversation-turn" 元素中獲取 ID
+      else if (element.hasAttribute('data-testid') && element.getAttribute('data-testid') === 'conversation-turn') {
+        // 在子元素中尋找包含 ID 的元素
         const idElement = element.querySelector('[id^="message-"]');
         if (idElement) {
-          messageId = idElement.id.replace('message-', '');
+          const idMatch = idElement.id.match(/message-(.*)/);
+          if (idMatch && idMatch[1]) {
+            messageId = idMatch[1];
+          }
         }
       }
       
-      // 如果還是沒找到，檢查元素是否有 ID 屬性
-      if (!messageId && element.id && element.id.includes('message')) {
-        messageId = element.id.replace(/^.*?-/, '');
+      if (messageId && !messageIdMap[messageId]) {
+        console.log('內容腳本: 找到訊息 ID:', messageId);
+        messageIdMap[messageId] = element;
       }
-    }
-    
-    // 如果找到了 ID，存到映射中
-    if (messageId) {
-      console.log('內容腳本: 找到訊息 ID:', messageId);
-      messageIdMap[element.outerHTML] = messageId;
-    }
-  });
+    });
+  } catch (error) {
+    console.error('內容腳本: 掃描訊息 ID 時出錯:', error);
+  }
 }
 
 // 監聽來自注入腳本的消息
@@ -114,7 +122,7 @@ window.addEventListener('message', function(event) {
     // 保存授權令牌
     if (token) {
       authorizationToken = token;
-      console.log('內容腳本: 保存授權令牌');
+      console.log('內容腳本: 保存授權令牌，長度:', token.length);
       
       // 發送到背景腳本
       chrome.runtime.sendMessage({
@@ -153,148 +161,134 @@ window.addEventListener('message', function(event) {
         message: lastPlayedMessage
       });
     }
+  } else if (event.data && event.data.type === 'VOICE_DOWNLOADER_TOKEN') {
+    // 處理僅發送令牌的消息
+    if (event.data.data && event.data.data.token) {
+      const token = event.data.data.token;
+      console.log('內容腳本: 收到令牌更新，長度:', token.length);
+      
+      // 保存令牌
+      authorizationToken = token;
+      
+      // 發送到背景腳本
+      chrome.runtime.sendMessage({
+        action: 'updateToken',
+        token: token
+      });
+    }
   }
 });
 
 // 為每個語音按鈕添加下載按鈕
 function addDownloadButtons() {
-  // 掃描訊息 ID
-  scanMessageIds();
-  
-  // 查找所有語音按鈕
   console.log('內容腳本: 尋找語音按鈕');
-  const audioButtons = document.querySelectorAll('button[aria-label*="Voice"], button[aria-label*="Listen"], button[aria-label*="Play"]');
+  
+  const audioButtons = document.querySelectorAll('button[aria-label*="Voice"], button[aria-label*="語音"], button[aria-label*="voice"]');
   console.log('內容腳本: 找到語音按鈕數量:', audioButtons.length);
   
   audioButtons.forEach(button => {
     // 檢查是否已經添加了下載按鈕
-    if (button.nextElementSibling && button.nextElementSibling.classList.contains('voice-download-btn')) {
+    if (button.parentElement.querySelector('.voice-downloader-btn')) {
       return;
     }
     
-    // 在每個按鈕旁邊創建一個下載按鈕
-    const downloadButton = document.createElement('button');
-    downloadButton.innerText = '↓';
-    downloadButton.title = '下載這段語音';
-    downloadButton.className = 'voice-download-btn';
-    downloadButton.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 14px;
-      cursor: pointer;
-      color: #8e8ea0;
-      padding: 4px 8px;
-      margin-left: 4px;
-      border-radius: 4px;
-      transition: background-color 0.2s, color 0.2s;
+    // 尋找消息容器
+    let messageContainer = button.closest('[data-message-id], [data-testid="conversation-turn"]');
+    if (!messageContainer) return;
+    
+    // 獲取消息 ID
+    let messageId = null;
+    
+    if (messageContainer.hasAttribute('data-message-id')) {
+      messageId = messageContainer.getAttribute('data-message-id');
+    } else {
+      // 嘗試從 conversation-turn 中獲取 ID
+      const idElement = messageContainer.querySelector('[id^="message-"]');
+      if (idElement) {
+        const idMatch = idElement.id.match(/message-(.*)/);
+        if (idMatch && idMatch[1]) {
+          messageId = idMatch[1];
+        }
+      }
+    }
+    
+    if (!messageId) return;
+    
+    // 獲取對話 ID
+    const conversationId = window.location.pathname.split('/').pop();
+    if (!conversationId) return;
+    
+    // 創建下載按鈕
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'voice-downloader-btn';
+    downloadBtn.title = '下載語音';
+    downloadBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 13L12 16L15 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 20H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     `;
     
-    // 滑鼠懸停效果
-    downloadButton.addEventListener('mouseover', () => {
-      downloadButton.style.backgroundColor = '#f0f0f0';
-      downloadButton.style.color = '#000';
+    // 設置樣式
+    downloadBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      margin-left: 4px;
+      border-radius: 4px;
+      color: inherit;
+      opacity: 0.7;
+      transition: opacity 0.2s, background-color 0.2s;
+    `;
+    
+    // 懸停效果
+    downloadBtn.addEventListener('mouseover', () => {
+      downloadBtn.style.opacity = '1';
+      downloadBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
     });
     
-    downloadButton.addEventListener('mouseout', () => {
-      downloadButton.style.backgroundColor = 'transparent';
-      downloadButton.style.color = '#8e8ea0';
+    downloadBtn.addEventListener('mouseout', () => {
+      downloadBtn.style.opacity = '0.7';
+      downloadBtn.style.backgroundColor = 'transparent';
     });
     
     // 點擊事件
-    downloadButton.addEventListener('click', (e) => {
-      // 阻止冒泡，以免觸發原始語音按鈕
-      e.stopPropagation();
+    downloadBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       
-      // 查找包含消息ID的元素
-      let messageContainer = button.closest('[data-message-id]');
-      let messageId = null;
+      console.log('內容腳本: 下載按鈕被點擊，訊息ID:', messageId, '對話ID:', conversationId);
       
-      // 如果找不到直接的 data-message-id，嘗試其他方法
-      if (!messageContainer) {
-        // 嘗試向上查找可能的訊息容器
-        messageContainer = button.closest('[data-testid*="message"]') || 
-                          button.closest('.message') || 
-                          button.closest('.text-message-container');
+      // 檢查令牌
+      if (!authorizationToken) {
+        console.error('內容腳本: 授權令牌缺失');
+        showNotification('授權令牌缺失，請先播放語音', true);
         
-        // 如果找到容器，嘗試從映射中獲取 ID
-        if (messageContainer) {
-          messageId = messageIdMap[messageContainer.outerHTML];
-        }
-        
-        // 如果仍然沒有 ID，嘗試從最接近的 ID 元素獲取
-        if (!messageId) {
-          const idElement = messageContainer?.querySelector('[id^="message-"]');
-          if (idElement) {
-            messageId = idElement.id.replace('message-', '');
-          }
-        }
-      } else {
-        messageId = messageContainer.getAttribute('data-message-id');
+        // 嘗試通過點擊語音按鈕來獲取令牌
+        button.click();
+        return;
       }
       
-      // 從 URL 獲取對話 ID
-      const conversationId = window.location.pathname.split('/').pop();
-      
-      if (messageId && conversationId) {
-        console.log('內容腳本: 下載請求:', { messageId, conversationId });
-        
-        // 檢查令牌
-        if (!authorizationToken) {
-          showNotification('請先播放語音，然後再嘗試下載', true);
-          return;
+      // 發送下載請求到背景腳本
+      chrome.runtime.sendMessage({
+        action: 'downloadAudio',
+        messageId: messageId,
+        conversationId: conversationId
+      }, (response) => {
+        if (response && response.status === 'downloading') {
+          showNotification('下載已開始');
+        } else if (response && response.status === 'error') {
+          showNotification(`下載失敗: ${response.message}`, true);
+        } else {
+          showNotification('下載請求發送失敗', true);
         }
-        
-        // 發送下載請求到背景腳本
-        chrome.runtime.sendMessage({
-          action: 'downloadAudio',
-          messageId: messageId,
-          conversationId: conversationId
-        }, (response) => {
-          if (response && response.status === 'downloading') {
-            showNotification('正在下載語音');
-          } else if (response && response.status === 'error') {
-            showNotification(`下載失敗: ${response.message}`, true);
-          }
-        });
-        
-        // 記錄最後播放的消息
-        lastPlayedMessage = {
-          messageId: messageId,
-          conversationId: conversationId,
-          timestamp: new Date().toLocaleString()
-        };
-        
-        // 更新背景腳本中的最後播放消息
-        chrome.runtime.sendMessage({
-          action: 'updateLastPlayed',
-          message: lastPlayedMessage
-        });
-      } else {
-        showNotification('找不到訊息 ID 或對話 ID', true);
-        console.log('內容腳本: 找不到訊息 ID，嘗試使用手動輸入');
-        
-        // 如果無法自動獲取 ID，添加一個簡單的輸入框讓用戶手動輸入
-        const inputMessageId = prompt('無法自動獲取訊息 ID，請手動輸入:');
-        if (inputMessageId && conversationId) {
-          chrome.runtime.sendMessage({
-            action: 'downloadAudio',
-            messageId: inputMessageId,
-            conversationId: conversationId
-          }, (response) => {
-            if (response && response.status === 'downloading') {
-              showNotification('正在下載語音');
-            } else if (response && response.status === 'error') {
-              showNotification(`下載失敗: ${response.message}`, true);
-            }
-          });
-        }
-      }
+      });
     });
     
-    // 插入下載按鈕
-    button.parentNode.insertBefore(downloadButton, button.nextSibling);
-    console.log('內容腳本: 已添加下載按鈕');
+    // 將按鈕添加到語音按鈕旁邊
+    button.parentElement.appendChild(downloadBtn);
   });
 }
 
@@ -304,63 +298,63 @@ function setupObserver() {
   
   const observer = new MutationObserver((mutations) => {
     let shouldAddButtons = false;
+    let shouldScanIds = false;
     
-    // 檢查是否有新的語音按鈕被添加
     for (const mutation of mutations) {
-      if (mutation.type === 'childList' && mutation.addedNodes.length) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            const hasAudioButtons = node.querySelector('button[aria-label*="Voice"], button[aria-label*="Listen"], button[aria-label*="Play"]');
-            if (hasAudioButtons) {
+            if (node.querySelector('button[aria-label*="Voice"], button[aria-label*="語音"], button[aria-label*="voice"]')) {
               shouldAddButtons = true;
-              break;
+            }
+            
+            if (node.hasAttribute && (node.hasAttribute('data-message-id') || 
+                (node.hasAttribute('data-testid') && node.getAttribute('data-testid') === 'conversation-turn'))) {
+              shouldScanIds = true;
             }
           }
         }
       }
-      
-      if (shouldAddButtons) break;
     }
     
-    // 如果發現新的語音按鈕，添加下載按鈕
+    if (shouldScanIds) {
+      scanMessageIds();
+    }
+    
     if (shouldAddButtons) {
-      console.log('內容腳本: 檢測到語音按鈕，添加下載按鈕');
       addDownloadButtons();
     }
   });
   
-  // 開始觀察整個文檔
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
 // 直接向頁面發送自定義事件來獲取最後一個請求信息
 function checkLastRequest() {
-  window.dispatchEvent(new CustomEvent('VOICE_DOWNLOADER_GET_LAST_REQUEST'));
+  window.dispatchEvent(new Event('VOICE_DOWNLOADER_GET_LAST_REQUEST'));
 }
 
 // 初始化函數
 function initialize() {
   console.log('內容腳本: 初始化');
   
-  // 注入網絡攔截器
-  injectInterceptor();
+  // 注入攔截器腳本
+  injectInterceptorScript();
   
-  // 設置 MutationObserver
+  // 掃描消息 ID
+  scanMessageIds();
+  
+  // 添加下載按鈕
+  addDownloadButtons();
+  
+  // 設置觀察者
   setupObserver();
   
-  // 初始添加下載按鈕
-  setTimeout(() => {
-    addDownloadButtons();
-  }, 1000);
+  // 檢查最後的請求
+  setTimeout(checkLastRequest, 1000);
   
-  // 定期檢查並添加下載按鈕
-  setInterval(() => {
-    addDownloadButtons();
-    checkLastRequest();
-  }, 3000);
+  // 定期檢查最後的請求
+  setInterval(checkLastRequest, 5000);
 }
 
 // 當頁面完全加載後初始化

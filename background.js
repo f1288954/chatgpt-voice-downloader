@@ -5,48 +5,58 @@ let lastPlayedMessage = null;
 
 // 監聽消息
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('背景: 收到消息:', request);
+  console.log('背景: 收到消息:', request.action);
   
   try {
     if (request.action === 'updateToken') {
-      currentToken = request.token;
-      console.log('背景: 更新授權令牌:', currentToken.substring(0, 15) + '...');
-      sendResponse({status: 'ok'});
-    } 
+      updateToken(request.token);
+      console.log('背景: 令牌已更新，長度:', currentToken ? currentToken.length : 0);
+      console.log('背景: 令牌前20個字符:', currentToken ? currentToken.substring(0, 20) + '...' : 'null');
+      sendResponse({status: 'success'});
+    }
+    else if (request.action === 'getToken') {
+      console.log('背景: 發送令牌，是否存在:', !!currentToken);
+      sendResponse({token: currentToken});
+    }
     else if (request.action === 'updateRequests') {
       savedRequests = request.requests;
-      console.log('背景: 更新請求列表');
-      sendResponse({status: 'ok'});
-    }
-    else if (request.action === 'updateLastPlayed') {
-      lastPlayedMessage = request.message;
-      console.log('背景: 更新最後播放的消息:', lastPlayedMessage);
+      console.log('背景: 請求列表已更新');
       sendResponse({status: 'ok'});
     }
     else if (request.action === 'getRequests') {
       console.log('背景: 發送請求列表');
       sendResponse({requests: savedRequests});
     }
-    else if (request.action === 'getToken') {
-      console.log('背景: 發送授權令牌');
-      sendResponse({token: currentToken});
+    else if (request.action === 'updateLastPlayed') {
+      lastPlayedMessage = request.message;
+      console.log('背景: 最後播放的消息已更新:', lastPlayedMessage);
+      sendResponse({status: 'ok'});
     }
     else if (request.action === 'getLastPlayed') {
       console.log('背景: 發送最後播放的消息');
       sendResponse(lastPlayedMessage);
     }
     else if (request.action === 'downloadAudio') {
-      console.log('背景: 開始下載', { messageId: request.messageId, conversationId: request.conversationId });
+      console.log('背景: 收到下載請求');
+      
+      if (!currentToken) {
+        console.error('背景: 令牌缺失，無法下載');
+        sendResponse({status: 'error', message: '授權令牌缺失，請先在 ChatGPT 頁面播放語音'});
+        return true;
+      }
+      
+      // 啟動下載過程
       downloadAudio(request.messageId, request.conversationId)
         .then(result => {
-          console.log('背景: 下載結果:', result);
-          sendResponse(result);
+          console.log('背景: 下載啟動成功');
+          sendResponse({status: 'downloading'});
         })
         .catch(error => {
-          console.error('背景: 下載錯誤:', error);
+          console.error('背景: 下載過程錯誤:', error.message);
           sendResponse({status: 'error', message: error.message});
         });
-      return true; // 異步回應
+      
+      return true; // 保持消息通道開啟以支持異步回應
     }
   } catch (error) {
     console.error('背景: 處理消息錯誤:', error);
@@ -59,12 +69,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // 下載功能
 async function downloadAudio(messageId, conversationId) {
   console.log('背景: 下載音頻:', { messageId, conversationId });
+  console.log('背景: 使用令牌:', currentToken ? '存在 (長度: ' + currentToken.length + ')' : '不存在');
   
   try {
     // 檢查是否有令牌
     if (!currentToken) {
       throw new Error('沒有可用的授權令牌，請先播放語音');
     }
+    
+    console.log('背景: 令牌長度:', currentToken.length);
     
     // 嘗試不同的基礎URL
     const baseUrls = [
@@ -172,6 +185,31 @@ async function downloadAudio(messageId, conversationId) {
   }
 }
 
+// 更新授權令牌
+function updateToken(token) {
+  if (token) {
+    console.log('背景腳本: 收到令牌更新，長度:', token.length);
+    currentToken = token;
+    
+    // 持久化存儲令牌
+    chrome.storage.local.set({ voiceDownloaderToken: token });
+  } else {
+    console.log('背景腳本: 收到空令牌更新');
+  }
+}
+
+// 載入先前保存的令牌
+function loadSavedToken() {
+  chrome.storage.local.get('voiceDownloaderToken', (result) => {
+    if (result.voiceDownloaderToken) {
+      currentToken = result.voiceDownloaderToken;
+      console.log('背景腳本: 從存儲中加載令牌，長度:', currentToken.length);
+    } else {
+      console.log('背景腳本: 存儲中沒有令牌');
+    }
+  });
+}
+
 // 擴充功能安裝/更新時清除數據
 chrome.runtime.onInstalled.addListener(function() {
   savedRequests = [];
@@ -179,5 +217,15 @@ chrome.runtime.onInstalled.addListener(function() {
   lastPlayedMessage = null;
   console.log('擴充功能已安裝/更新，數據已重置');
 });
+
+// 初始化
+function initialize() {
+  loadSavedToken();
+  
+  console.log('背景腳本: 初始化完成');
+}
+
+// 啟動
+initialize();
 
 console.log('背景腳本已載入');
