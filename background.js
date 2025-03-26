@@ -73,14 +73,14 @@ async function downloadAudio(messageId, conversationId) {
     
     // 嘗試不同的基礎URL
     const baseUrls = [
+      'https://chatgpt.com/backend-api/synthesize',
       'https://chat.openai.com/backend-api/synthesize',
-      'https://chat.openai.com/backend-api/conversation/gen_title/synthesize',
-      'https://chatgpt.com/backend-api/synthesize'
+      'https://chat.openai.com/backend-api/conversation/gen_title/synthesize'
     ];
     
     // 嘗試不同的聲音和格式組合
-    const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
-    const formats = ['mp3', 'aac', 'opus'];
+    const voices = ['cove', 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+    const formats = ['aac', 'mp3', 'opus'];
     
     let response = null;
     let successUrl = '';
