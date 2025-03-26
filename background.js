@@ -10,7 +10,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   try {
     if (request.action === 'updateToken') {
       currentToken = request.token;
-      console.log('背景: 更新授權令牌:', currentToken.substring(0, 15) + '...');
+      console.log('背景: 更新授權令牌:', currentToken ? (currentToken.substring(0, 15) + '...') : '無效令牌');
+      
+      // 測試：驗證令牌格式
+      const tokenType = currentToken && currentToken.startsWith('Bearer ') ? 'Bearer令牌' : '非標準格式';
+      console.log('背景: 令牌類型驗證:', tokenType);
+      
       sendResponse({status: 'ok'});
     } 
     else if (request.action === 'updateRequests') {

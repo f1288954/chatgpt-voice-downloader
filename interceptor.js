@@ -15,6 +15,9 @@ window.fetch = async function(...args) {
       const authHeader = config?.headers?.Authorization || 
                         (config?.headers ? config.headers.get('Authorization') : null);
       
+      // 新增：記錄授權令牌是否獲取成功
+      console.log('頁面: 授權令牌狀態:', authHeader ? '成功獲取' : '未獲取到', authHeader ? '令牌前15個字符: ' + authHeader.substring(0, 15) + '...' : '');
+      
       if (authHeader) {
         // 提取 URL 參數
         const url = new URL(resource, window.location.origin);
@@ -66,6 +69,7 @@ window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
       this.setRequestHeader = function(name, value) {
         if (name.toLowerCase() === 'authorization') {
           authHeader = value;
+          console.log('頁面: 通過 XHR 成功捕獲授權令牌，前15個字符:', authHeader.substring(0, 15) + '...');
         }
         return originalSetRequestHeader.apply(this, arguments);
       };
@@ -100,6 +104,8 @@ window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
           } catch (error) {
             console.error('頁面: XHR 攔截錯誤:', error);
           }
+        } else {
+          console.warn('頁面: XHR 請求完成，但未捕獲到授權令牌');
         }
       });
       

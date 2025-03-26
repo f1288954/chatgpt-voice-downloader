@@ -78,3 +78,68 @@
 2. 增加批量下載功能
 3. 支援更多語音格式和選項
 4. 優化用戶界面體驗
+
+## 開發日誌
+
+### 2025-03-25 開發記錄
+
+#### 今日工作摘要
+
+今天我們將專案從最新版本回退到 4bee18b 版本（"回復到 1a22b8b: 最佳工作版本-下載功能優化"），因為這個版本能正確捕獲 Message ID、Conversation ID 和授權令牌。在後續版本中，雖然新增了一些功能，但核心功能出現問題。
+
+#### 執行操作
+1. 查看現有代碼
+2. 確認專案版本歷史
+3. 將專案回退到 4bee18b 版本
+4. 解決 Chrome 擴充功能加載問題
+
+#### 項目現狀
+- 目前代碼庫處於 4bee18b 版本（detached HEAD 狀態）
+- 主要功能檔案：interceptor.js, content.js, background.js
+- 核心功能：攔截 ChatGPT 語音請求並下載對應音頻檔案
+
+#### 關鍵文件功能摘要
+
+##### interceptor.js
+- 攔截網頁發起的 fetch 和 XHR 請求
+- 從 URL 參數中提取 messageId 和 conversationId
+- 從請求頭中捕獲授權令牌 (Authorization Token)
+- 將這些資訊通過 postMessage 發送給 content.js
+
+##### content.js
+- 接收 interceptor.js 傳來的資訊
+- 處理授權令牌和請求數據
+- 通過 chrome.runtime.sendMessage 將資訊轉發給 background.js
+
+##### background.js
+- 接收並處理 content.js 傳來的資訊
+- 使用獲取的 messageId、conversationId 和授權令牌下載語音檔案
+- 管理下載歷史記錄
+
+#### 後續工作方向
+
+1. **測試當前版本**：
+   - 確認在 Chrome 中正確加載擴充功能
+   - 測試語音下載功能是否正常工作
+   - 驗證授權令牌、messageId 和 conversationId 是否正確捕獲
+
+2. **可能的改進**：
+   - 改進錯誤處理：添加更詳細的錯誤日誌和用戶提示
+   - 優化 UI：改進擴充功能的用戶界面
+   - 支援更多格式：考慮添加更多音頻格式的支援
+
+#### 重要提示
+
+- 專案使用 Git 進行版本控制，當前在 4bee18b 版本（detached HEAD 狀態）
+- 如需保存更改，應創建新分支：`git switch -c <新分支名稱>`
+- Chrome 擴充功能可能存在快取問題，如遇到問題請完全移除後重新加載
+
+#### 下次開發時的快速引導信息
+
+```
+ChatGPT Voice Downloader 擴充功能開發
+目前狀態：處於 4bee18b 版本（回退到最佳工作版本）
+主要功能：攔截 ChatGPT 語音請求、提取授權令牌和參數、下載語音檔案
+核心文件：interceptor.js (攔截請求)、content.js (中轉資訊)、background.js (下載處理)
+關鍵挑戰：確保授權令牌正確捕獲、解決"Failed to Fetch"錯誤
+工作目錄：/Users/jo/Desktop/🤖 工程師jojo/chatgpt_voice_downloader_V2/
