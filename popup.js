@@ -32,7 +32,7 @@ async function loadRequests() {
     if (requestsResponse && requestsResponse.requests && requestsResponse.requests.length > 0) {
       displayRequests(requestsResponse.requests);
     } else {
-      requestsList.innerHTML = '<li class="no-requests">尚無請求歷史</li>';
+      requestsList.innerHTML = '<li class="no-requests">No request history yet</li>';
     }
     
     // 獲取最後播放的訊息
@@ -44,8 +44,8 @@ async function loadRequests() {
       lastPlayedSection.style.display = 'none';
     }
   } catch (error) {
-    console.error('載入請求失敗:', error);
-    requestsList.innerHTML = '<li class="no-requests">無法載入請求歷史</li>';
+    console.error('Failed to load request history:', error);
+    requestsList.innerHTML = '<li class="no-requests">Failed to load request history</li>';
     lastPlayedSection.style.display = 'none';
   }
 }
@@ -64,11 +64,11 @@ function displayRequests(requests) {
     
     const messageIdText = document.createElement('div');
     messageIdText.className = 'message-id';
-    messageIdText.textContent = `訊息 ID: ${request.messageId.substring(0, 10)}...`;
+    messageIdText.textContent = `Message ID: ${request.messageId.substring(0, 10)}...`;
     
     const downloadButton = document.createElement('button');
     downloadButton.className = 'mini-download-btn';
-    downloadButton.textContent = '下載';
+    downloadButton.textContent = 'Download';
     downloadButton.addEventListener('click', () => {
       downloadAudio(request.messageId, request.conversationId);
     });
@@ -83,7 +83,7 @@ function displayRequests(requests) {
 // 顯示最後播放的訊息
 function displayLastPlayed(message) {
   lastPlayedSection.style.display = 'block';
-  lastPlayedInfo.textContent = `最後播放: ${message.timestamp}`;
+  lastPlayedInfo.textContent = `Last played: ${message.timestamp}`;
   
   downloadLastBtn.onclick = () => {
     downloadAudio(message.messageId, message.conversationId);
@@ -93,7 +93,7 @@ function displayLastPlayed(message) {
 // 下載音頻
 async function downloadAudio(messageId, conversationId) {
   try {
-    showStatus('正在下載...');
+    showStatus('Downloading...');
     
     const response = await chrome.runtime.sendMessage({
       action: 'downloadAudio',
@@ -102,13 +102,13 @@ async function downloadAudio(messageId, conversationId) {
     });
     
     if (response && response.status === 'downloading') {
-      showStatus('下載已開始');
+      showStatus('Download started');
     } else if (response && response.status === 'error') {
-      showStatus(`下載失敗: ${response.message}`, true);
+      showStatus(`Download failed: ${response.message}`, true);
     }
   } catch (error) {
-    console.error('下載失敗:', error);
-    showStatus('下載失敗', true);
+    console.error('Download failed:', error);
+    showStatus('Download failed', true);
   }
 }
 
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const conversationId = conversationIdInput.value.trim();
     
     if (!messageId || !conversationId) {
-      showStatus('請輸入訊息 ID 和對話 ID', true);
+      showStatus('Please enter Message ID and Conversation ID', true);
       return;
     }
     

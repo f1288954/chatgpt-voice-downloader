@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>ChatGPT 語音下載器</title>
+  <title>ChatGPT Voice Downloader</title>
   <style>
     body {
       width: 320px;
@@ -157,39 +157,39 @@
   </style>
 </head>
 <body>
-  <h1>ChatGPT 語音下載器</h1>
+  <h1>ChatGPT Voice Downloader</h1>
   
   <div class="section">
     <div class="input-group">
-      <label for="message-id">訊息 ID</label>
-      <input type="text" id="message-id" placeholder="輸入訊息 ID">
+      <label for="message-id">Message ID</label>
+      <input type="text" id="message-id" placeholder="Enter message ID">
     </div>
     
     <div class="input-group">
-      <label for="conversation-id">對話 ID</label>
-      <input type="text" id="conversation-id" placeholder="輸入對話 ID">
+      <label for="conversation-id">Conversation ID</label>
+      <input type="text" id="conversation-id" placeholder="Enter conversation ID">
     </div>
     
-    <button id="download-btn">下載語音</button>
+    <button id="download-btn">Download Voice</button>
   </div>
   
   <div id="last-played-section" style="display: none;">
-    <div class="section-title">最近播放</div>
+    <div class="section-title">Recently Played</div>
     <div id="last-played-info"></div>
-    <button id="download-last-btn">下載此語音</button>
+    <button id="download-last-btn">Download This Voice</button>
   </div>
   
   <div class="section">
-    <div class="section-title">請求歷史</div>
+    <div class="section-title">Request History</div>
     <ul id="requests-list">
-      <li class="no-requests">載入中...</li>
+      <li class="no-requests">Loading...</li>
     </ul>
   </div>
   
   <div id="status-text"></div>
   
   <footer>
-    ChatGPT 語音下載器 v2.0
+    ChatGPT Voice Downloader v2.0
   </footer>
   
   <script src="popup.js"></script>
