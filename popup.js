@@ -1,12 +1,15 @@
 // DOM 元素
 const messageIdInput = document.getElementById('message-id');
 const conversationIdInput = document.getElementById('conversation-id');
-const downloadBtn = document.getElementById('download-btn');
 const requestsList = document.getElementById('requests-list');
 const lastPlayedSection = document.getElementById('last-played-section');
 const lastPlayedInfo = document.getElementById('last-played-info');
 const downloadLastBtn = document.getElementById('download-last-btn');
 const statusText = document.getElementById('status-text');
+const showAdvancedLink = document.getElementById('show-advanced');
+
+// 高級選項狀態
+let advancedMode = false;
 
 // 顯示狀態訊息
 function showStatus(message, isError = false) {
@@ -31,6 +34,15 @@ async function loadRequests() {
     
     if (requestsResponse && requestsResponse.requests && requestsResponse.requests.length > 0) {
       displayRequests(requestsResponse.requests);
+      
+      // 自動填充最新請求的ID到輸入框
+      const latestRequest = requestsResponse.requests[0];
+      if (latestRequest) {
+        messageIdInput.value = latestRequest.messageId;
+        if (latestRequest.conversationId && !conversationIdInput.value) {
+          conversationIdInput.value = latestRequest.conversationId;
+        }
+      }
     } else {
       requestsList.innerHTML = '<li class="no-requests">No request history yet</li>';
     }
@@ -125,6 +137,55 @@ function fillConversationIdFromUrl() {
   });
 }
 
+// 切換高級模式
+function toggleAdvancedMode() {
+  advancedMode = !advancedMode;
+  
+  if (advancedMode) {
+    // 顯示高級選項
+    showAdvancedLink.textContent = 'Hide advanced options';
+    
+    // 允許編輯輸入框
+    messageIdInput.readOnly = false;
+    conversationIdInput.readOnly = false;
+    
+    // 添加下載按鈕
+    const infoSection = document.getElementById('info-section');
+    
+    if (!document.getElementById('download-btn')) {
+      const downloadBtn = document.createElement('button');
+      downloadBtn.id = 'download-btn';
+      downloadBtn.textContent = 'Download Voice';
+      downloadBtn.addEventListener('click', () => {
+        const messageId = messageIdInput.value.trim();
+        const conversationId = conversationIdInput.value.trim();
+        
+        if (!messageId || !conversationId) {
+          showStatus('Please enter Message ID and Conversation ID', true);
+          return;
+        }
+        
+        downloadAudio(messageId, conversationId);
+      });
+      
+      infoSection.appendChild(downloadBtn);
+    }
+  } else {
+    // 隱藏高級選項
+    showAdvancedLink.textContent = 'Show advanced options';
+    
+    // 禁止編輯輸入框
+    messageIdInput.readOnly = true;
+    conversationIdInput.readOnly = true;
+    
+    // 移除下載按鈕
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+      downloadBtn.remove();
+    }
+  }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   // 從 URL 填充對話 ID
@@ -133,18 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // 載入請求歷史
   loadRequests();
   
-  // 設置下載按鈕
-  downloadBtn.addEventListener('click', () => {
-    const messageId = messageIdInput.value.trim();
-    const conversationId = conversationIdInput.value.trim();
-    
-    if (!messageId || !conversationId) {
-      showStatus('Please enter Message ID and Conversation ID', true);
-      return;
-    }
-    
-    downloadAudio(messageId, conversationId);
-  });
+  // 設置高級選項切換
+  showAdvancedLink.addEventListener('click', toggleAdvancedMode);
   
   // 定期刷新請求列表
   setInterval(loadRequests, 5000);

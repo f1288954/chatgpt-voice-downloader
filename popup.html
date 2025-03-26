@@ -154,23 +154,37 @@
       font-size: 11px;
       color: #888;
     }
+    .advanced-section {
+      margin-top: 15px;
+    }
+    .advanced-toggle {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+      cursor: pointer;
+      display: block;
+      margin: 5px 0;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
   <h1>ChatGPT Voice Downloader</h1>
   
-  <div class="section">
+  <div class="section" id="info-section">
     <div class="input-group">
       <label for="message-id">Message ID</label>
-      <input type="text" id="message-id" placeholder="Enter message ID">
+      <input type="text" id="message-id" placeholder="Enter message ID" readonly>
     </div>
     
     <div class="input-group">
       <label for="conversation-id">Conversation ID</label>
-      <input type="text" id="conversation-id" placeholder="Enter conversation ID">
+      <input type="text" id="conversation-id" placeholder="Enter conversation ID" readonly>
     </div>
     
-    <button id="download-btn">Download Voice</button>
+    <div class="advanced-section">
+      <a class="advanced-toggle" id="show-advanced">Show advanced options</a>
+    </div>
   </div>
   
   <div id="last-played-section" style="display: none;">
