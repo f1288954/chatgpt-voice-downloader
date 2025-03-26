@@ -36,6 +36,27 @@ This extension works by:
 4. Click "Download" on any captured voice response
 5. For advanced options, click "Show advanced options"
 
+## Acceptable Use Guidelines
+
+This extension is designed for personal use only. Please follow these guidelines:
+
+1. **Personal Use Only**: Only download voice responses from your own conversations that you already have legitimate access to
+2. **No Commercial Use**: Do not use downloaded content for commercial purposes without proper authorization from OpenAI
+3. **No Mass Downloading**: This tool is not intended for bulk or automated downloading of content
+4. **Respect Rate Limits**: Be mindful of ChatGPT's rate limits and do not use this tool to circumvent them
+5. **Privacy Awareness**: Keep in mind that downloaded content may contain personal information
+
+## Legal Disclaimer
+
+This extension is an independent project and is not affiliated with, endorsed by, or sponsored by OpenAI. Users must comply with OpenAI's [Terms of Service](https://openai.com/policies/terms-of-use) when using this extension.
+
+The developers of this extension:
+- Do not encourage or facilitate any violation of OpenAI's terms of service
+- Do not provide access to any content that users don't already have legitimate access to
+- Cannot guarantee that OpenAI will not change their systems in ways that could affect this extension's functionality
+
+**USE AT YOUR OWN RISK**: Users are solely responsible for how they use this extension and any content they download.
+
 ## Project Structure
 
 - `manifest.json` - Extension configuration
@@ -77,4 +98,4 @@ MIT License
 
 ---
 
-*Note: This extension is not affiliated with or endorsed by OpenAI.*
+*This extension is provided for personal educational purposes only. The developers are not responsible for any misuse of this extension or violation of any terms of service.*
