@@ -111,7 +111,7 @@ window.addEventListener('message', function(event) {
       });
       
       // 顯示通知
-      showNotification(`已捕獲語音請求: ID ${messageId.substring(0, 8)}...`);
+      showNotification(`Voice request captured: ID ${messageId.substring(0, 8)}...`);
     }
   } else if (event.data && event.data.type === 'VOICE_DOWNLOADER_LAST_REQUEST') {
     console.log('內容腳本: 收到最後一個請求數據:', event.data.data);
