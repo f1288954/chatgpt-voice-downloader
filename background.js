@@ -133,27 +133,16 @@ async function downloadAudio(messageId, conversationId) {
     const contentType = response.headers.get('content-type');
     console.log('背景: 響應內容類型:', contentType);
     
-    // 獲取 blob
-    const blob = await response.blob();
-    console.log('背景: blob 大小:', blob.size, 'bytes');
-    
-    if (blob.size < 100) {
-      // 內容太小，可能是錯誤
-      const text = await blob.text();
-      console.error('背景: 響應內容太小，可能是錯誤:', text);
-      throw new Error(`下載失敗: 返回內容太小 (${blob.size} bytes)`);
-    }
-    
-    const objectUrl = URL.createObjectURL(blob);
-    
     // 確定文件格式
     const fileFormat = contentType.includes('aac') ? 'aac' : 
                       contentType.includes('opus') ? 'opus' : 'mp3';
     
     console.log('背景: 開始下載...');
+    
+    // 直接使用原始URL進行下載，而不是創建objectURL
     const downloadId = await new Promise((resolve, reject) => {
       chrome.downloads.download({
-        url: objectUrl,
+        url: successUrl,
         filename: `chatgpt-voice-${messageId.substring(0, 8)}.${fileFormat}`,
         saveAs: true  // 顯示保存對話框
       }, (downloadId) => {
@@ -166,9 +155,6 @@ async function downloadAudio(messageId, conversationId) {
     });
     
     console.log('背景: 下載開始，ID:', downloadId);
-    
-    // 清理對象URL
-    URL.revokeObjectURL(objectUrl);
     
     return {status: 'downloading'};
   } catch (error) {
