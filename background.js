@@ -133,16 +133,42 @@ async function downloadAudio(messageId, conversationId) {
     const contentType = response.headers.get('content-type');
     console.log('背景: 響應內容類型:', contentType);
     
-    // 確定文件格式
-    const fileFormat = contentType.includes('aac') ? 'aac' : 
-                      contentType.includes('opus') ? 'opus' : 'mp3';
+    // 確定文件格式（從內容類型獲取，或使用請求中的格式）
+    let fileFormat = 'aac'; // 預設格式
+    if (contentType.includes('audio/aac') || contentType.includes('audio/x-aac')) {
+      fileFormat = 'aac';
+    } else if (contentType.includes('audio/mp3') || contentType.includes('audio/mpeg')) {
+      fileFormat = 'mp3';
+    } else if (contentType.includes('audio/opus')) {
+      fileFormat = 'opus';
+    } else if (successUrl.includes('format=')) {
+      // 從URL中提取格式
+      const formatMatch = successUrl.match(/format=([^&]+)/);
+      if (formatMatch && formatMatch[1]) {
+        fileFormat = formatMatch[1];
+      }
+    }
+    
+    console.log('背景: 決定使用文件格式:', fileFormat);
+    
+    // 獲取二進制數據
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // 將二進制數據轉換為base64
+    let binaryString = '';
+    bytes.forEach(byte => binaryString += String.fromCharCode(byte));
+    const base64 = btoa(binaryString);
+    
+    // 創建data URL
+    const dataUrl = `data:${contentType};base64,${base64}`;
     
     console.log('背景: 開始下載...');
     
-    // 直接使用原始URL進行下載，而不是創建objectURL
+    // 使用data URL進行下載
     const downloadId = await new Promise((resolve, reject) => {
       chrome.downloads.download({
-        url: successUrl,
+        url: dataUrl,
         filename: `chatgpt-voice-${messageId.substring(0, 8)}.${fileFormat}`,
         saveAs: true  // 顯示保存對話框
       }, (downloadId) => {
